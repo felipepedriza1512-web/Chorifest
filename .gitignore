@@ -1,0 +1,37 @@
+# Git ignore para Chorifest
+
+# ==============================================================================
+# SEGURIDAD: Archivos de entorno con credenciales reales
+# ==============================================================================
+# .env.example SI se versiona (no tiene datos reales).
+# NINGÚN .env con datos reales debe entrar al repositorio.
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+/storage/backups/
+/storage/comprobantes/*
+!/storage/comprobantes/.htaccess
+
+# Ignorar archivos SQL con datos o volcados reales
+*.sql
+!sql/bd_final_fk.sql
+!sql/migration_*.sql
+!sql/rollback_*.sql
+!database/migrations/*.sql
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Uploads
+/public/uploads/productos/*
+!/public/uploads/productos/.gitkeep
+!/public/uploads/productos/.htaccess
+
+# Logs y temporales
+*.log
+.DS_Store
+Thumbs.db

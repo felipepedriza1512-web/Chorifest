@@ -1,0 +1,40 @@
+# ==============================================================================
+# SEGURIDAD Y PROTECCIÓN DE DIRECTORIOS - CHORIFEST
+# ==============================================================================
+
+# 1. Desactivar listado de directorios
+Options -Indexes
+
+# 2. Firmas de servidor desactivadas (no revelar versión de Apache/PHP)
+ServerSignature Off
+
+# 3. Bloqueo de archivos ocultos, configuración y archivos sensibles por extensión
+<FilesMatch "(?i)(^\.|\.(env|git|log|bak|sql|sh|py|ini|cfg|conf|example|lock|htpasswd|htaccess\.bak))$">
+    Require all denied
+</FilesMatch>
+
+# 4. Bloquear archivos específicos conocidos
+<FilesMatch "(?i)^(README\.md|package(-lock)?\.json|composer\.(json|lock)|phpinfo\.php|wp-config\.php)$">
+    Require all denied
+</FilesMatch>
+
+# 5. Bloqueo de directorios internos de código fuente (no accesibles por URL)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloquear cualquier archivo o directorio que empiece por punto (.git, .env, etc.)
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+
+    # Bloquear directorios de backend/código que no deben ser públicos
+    RewriteRule ^(config|models|database|docs|documentation|storage|tests|scripts|sql|node_modules|api/internal)(/|$) - [F,L]
+</IfModule>
+
+# 6. Cabeceras de seguridad HTTP
+<IfModule mod_headers.c>
+    # Evitar que el sitio sea enmarcado en iframes externos (clickjacking)
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # Evitar MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    # Forzar HTTPS durante 1 año (activar solo cuando HTTPS esté configurado)
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
