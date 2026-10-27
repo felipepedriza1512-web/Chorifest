@@ -1,5 +1,39 @@
 <?php
-// Ensure this view is accessed through the controller, not directly.
+require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
+if (!isset($authController)) {
+    require_once __DIR__ . '/../../config/database.php';
+    require_once __DIR__ . '/../../models/UserModel.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthController.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthMiddleware.php';
+    enforceSecureSession();
+    $db = getDatabaseConnection();
+    $userModel = new UserModel($db);
+    $authController = new AuthController($userModel);
+
+    if ($authController->isLoggedIn()) {
+        header('Location: ' . baseUrl('/index.php'));
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'register') {
+        $result = $authController->handleRegister($_POST);
+        $message = $result['message'];
+        $isSuccess = $result['success'];
+
+        if ($isSuccess) {
+            $loginRes = $authController->handleLogin([
+                'email' => $_POST['email'] ?? '',
+                'password' => $_POST['password'] ?? ''
+            ]);
+            if ($loginRes['success'] ?? false) {
+                header('Location: ' . baseUrl('/controllers/cliente/catalogo.php'));
+                exit;
+            }
+        }
+    }
+}
+
 if (!isset($isSuccess)) {
     $isSuccess = true;
     $message = null;
@@ -312,7 +346,7 @@ if (!isset($isSuccess)) {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="register.php">
+            <form method="POST" action="">
                 <input type="hidden" name="action" value="register">
                 
                 <div class="input-group">
@@ -350,5 +384,6 @@ if (!isset($isSuccess)) {
         </div>
     </div>
 
+    <script src="<?= function_exists('baseUrl') ? baseUrl('/chorifest-fondo.js') : '../../chorifest-fondo.js' ?>"></script>
 </body>
 </html>

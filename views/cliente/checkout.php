@@ -111,17 +111,39 @@ select.form-control option {
     <div class="checkout-container">
         <form class="checkout-form" method="POST" action="checkout.php" enctype="multipart/form-data">
             <input type="hidden" name="action" value="checkout">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
             
             <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">Información de Envío</h3>
             
             <div class="form-group">
-                <label for="id_zona">Zona de Envío *</label>
+                <label for="id_zona">Zona de Cobertura Detectada *</label>
                 <select id="id_zona" name="id_zona" class="form-control" required onchange="updateShippingCost()">
-                    <option value="">Selecciona tu zona</option>
+                    <option value="">Arrastra el pin en el mapa para detectar tu zona...</option>
                     <?php foreach ($zonasEnvio as $zona): ?>
-                        <option value="<?= $zona['id_zona'] ?>" data-cost="<?= $zona['costo_domicilio'] ?>"><?= htmlspecialchars($zona['nombre']) ?> (+ $<?= number_format($zona['costo_domicilio'], 0) ?>)</option>
+                        <option value="<?= $zona['id_zona'] ?>" data-cost="0" data-min="<?= $zona['monto_minimo'] ?? 0 ?>">
+                            <?= htmlspecialchars($zona['nombre']) ?> (¡Envío Gratis! | Mínimo: $<?= number_format($zona['monto_minimo'] ?? 0, 0) ?>)
+                        </option>
                     <?php endforeach; ?>
                 </select>
+                <small style="color:var(--text-muted); display:block; margin-top:4px;">
+                    * La cobertura y el monto mínimo se validan automáticamente con las coordenadas de tu pin en el servidor.
+                </small>
+            </div>
+
+            <!-- Mapa Leaflet para confirmar ubicación exacta (Requisito 3) -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+            <div class="form-group" style="margin-top: 25px;">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>📍 Confirma tu Ubicación Exacta con el Pin Arrastrable *</span>
+                    <small style="color: var(--primary); font-weight: normal; cursor: pointer;" onclick="usarGpsCliente()">📍 Usar mi GPS</small>
+                </label>
+                <div id="checkout-picker-map" style="height: 280px; border-radius: 12px; border: 1px solid var(--glass-border); overflow: hidden; margin-top: 8px;"></div>
+                <input type="hidden" name="latitud" id="latitud_input" value="7.1193">
+                <input type="hidden" name="longitud" id="longitud_input" value="-73.1227">
+                
+                <div id="coverage-status-box" style="margin-top: 10px; padding: 12px 16px; border-radius: 10px; font-size: 0.92rem; display: none;"></div>
             </div>
 
             <div class="form-group">
@@ -131,13 +153,120 @@ select.form-control option {
 
             <div class="form-group">
                 <label for="barrio">Barrio</label>
-                <input type="text" id="barrio" name="barrio" class="form-control">
+                <input type="text" id="barrio" name="barrio" class="form-control" placeholder="Ej: San Francisco, Cabecera, Provenza...">
             </div>
 
             <div class="form-group">
                 <label for="referencia">Referencia / Indicaciones</label>
                 <input type="text" id="referencia" name="referencia" class="form-control" placeholder="Ej: Casa esquinera reja negra, dejar en portería...">
             </div>
+
+            <script>
+            var activeZonesGeoJson = <?= json_encode($zonasEnvio) ?>;
+            var currentCartSubtotal = <?= (float)$subtotal ?>;
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var defaultLat = 7.1193;
+                var defaultLng = -73.1227;
+
+                var map = L.map('checkout-picker-map').setView([defaultLat, defaultLng], 14);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                // Dibujar polígonos de zonas activas
+                activeZonesGeoJson.forEach(function(z) {
+                    if (z.poligono_geojson) {
+                        try {
+                            var g = JSON.parse(z.poligono_geojson);
+                            L.geoJSON(g, {
+                                style: { color: '#22c55e', weight: 2, fillColor: '#22c55e', fillOpacity: 0.18 }
+                            }).bindPopup("<strong>" + z.nombre + "</strong><br>Tarifa: <span style='color:#22c55e;font-weight:700;'>¡Envío Gratis!</span><br>Mínimo: $" + Number(z.monto_minimo || 0).toLocaleString()).addTo(map);
+                        } catch(e) {}
+                    }
+                });
+
+                var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+                marker.bindPopup("<b>Lugar de Entrega</b><br>Arrastra este pin a tu ubicación exacta.").openPopup();
+
+                function verificarCoberturaServidor(lat, lng) {
+                    var box = document.getElementById('coverage-status-box');
+                    var btnSubmit = document.querySelector('.btn-submit');
+                    box.style.display = 'block';
+                    box.style.background = 'rgba(255,255,255,0.05)';
+                    box.style.color = '#ccc';
+                    box.innerHTML = 'Verificando cobertura en el servidor...';
+
+                    fetch('../../api/validar_cobertura.php?lat=' + lat + '&lng=' + lng + '&subtotal=' + currentCartSubtotal)
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.en_cobertura && res.zona) {
+                                // Seleccionar zona en select
+                                var select = document.getElementById('id_zona');
+                                select.value = res.zona.id_zona;
+                                updateShippingCost();
+
+                                if (!res.zona.cumple_minimo) {
+                                    box.style.background = 'rgba(234, 179, 8, 0.15)';
+                                    box.style.border = '1px solid rgba(234, 179, 8, 0.4)';
+                                    box.style.color = '#fef08a';
+                                    box.innerHTML = "⚠️ <strong>Zona: " + res.zona.nombre + "</strong>.<br>El monto mínimo de compra es de $" + Number(res.zona.monto_minimo).toLocaleString() + ". Tu subtotal actual es $" + Number(currentCartSubtotal).toLocaleString() + ". Por favor agrega más productos a tu carrito.";
+                                    if (btnSubmit) btnSubmit.disabled = true;
+                                } else {
+                                    box.style.background = 'rgba(34, 197, 94, 0.15)';
+                                    box.style.border = '1px solid rgba(34, 197, 94, 0.4)';
+                                    box.style.color = '#86efac';
+                                    box.innerHTML = "✔ <strong>¡Ubicación dentro de cobertura!</strong><br>Zona asignada: <strong>" + res.zona.nombre + "</strong> (¡Envío Gratis!).";
+                                    if (btnSubmit) btnSubmit.disabled = false;
+                                }
+                            } else {
+                                box.style.background = 'rgba(239, 68, 68, 0.15)';
+                                box.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                                box.style.color = '#fca5a5';
+                                box.innerHTML = "❌ <strong>Fuera de cobertura:</strong> " + (res.message || 'Tu ubicación no está dentro de nuestras zonas activas de entrega.');
+                                if (btnSubmit) btnSubmit.disabled = true;
+                            }
+                        })
+                        .catch(function(err) {
+                            box.innerText = 'Error al validar cobertura en el servidor.';
+                        });
+                }
+
+                function setCoords(lat, lng) {
+                    document.getElementById('latitud_input').value = lat.toFixed(7);
+                    document.getElementById('longitud_input').value = lng.toFixed(7);
+                    verificarCoberturaServidor(lat, lng);
+                }
+
+                setCoords(defaultLat, defaultLng);
+
+                marker.on('dragend', function(e) {
+                    var pos = marker.getLatLng();
+                    setCoords(pos.lat, pos.lng);
+                });
+
+                map.on('click', function(e) {
+                    marker.setLatLng(e.latlng);
+                    setCoords(e.latlng.lat, e.latlng.lng);
+                });
+
+                window.usarGpsCliente = function() {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(function(pos) {
+                            var lat = pos.coords.latitude;
+                            var lng = pos.coords.longitude;
+                            map.setView([lat, lng], 16);
+                            marker.setLatLng([lat, lng]);
+                            setCoords(lat, lng);
+                        }, function() {
+                            alert('No se pudo obtener tu ubicación GPS automáticamente. Por favor arrastra el pin en el mapa.');
+                        });
+                    }
+                };
+            });
+            </script>
 
             <h3 style="margin-top: 40px; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">Opciones de Pago</h3>
 
@@ -206,8 +335,8 @@ select.form-control option {
                     <span>$<?= number_format($subtotal, 2) ?></span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-top: 10px; color: #aaa;">
-                    <span>Envío</span>
-                    <span id="shipping-cost">$0.00</span>
+                    <span>Domicilio:</span>
+                    <span id="shipping-cost" style="color:#22c55e; font-weight:700;">Gratis</span>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--glass-border); font-size: 1.5rem; font-weight: 800; color: var(--primary);">
@@ -220,19 +349,7 @@ select.form-control option {
 
     <script>
     function updateShippingCost() {
-        const select = document.getElementById('id_zona');
-        const selectedOption = select.options[select.selectedIndex];
-        let cost = 0;
-        
-        if(selectedOption.value !== "") {
-            cost = parseFloat(selectedOption.getAttribute('data-cost'));
-        }
-        
-        document.getElementById('shipping-cost').innerText = '$' + cost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
-        const subtotal = parseFloat(document.getElementById('total-price').getAttribute('data-subtotal'));
-        const total = subtotal + cost;
-        document.getElementById('total-price').innerText = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // En Chorifest el envío es gratis; no se realiza ningún cálculo adicional
     }
 
     function toggleNequiInfo() {

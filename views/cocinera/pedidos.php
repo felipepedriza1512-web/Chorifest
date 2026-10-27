@@ -242,23 +242,24 @@
 </style>
 
 <?php
-// Organize orders by status
-$pendientes = [];
+// Organize orders by status (Regla 1 del prompt)
+$aceptados = [];
 $en_preparacion = [];
-$listos = [];
 
 foreach ($pedidos as $p) {
-    if ($p['id_estado'] == 1 || $p['id_estado'] == 2) {
-        $pendientes[] = $p;
-    } elseif ($p['id_estado'] == 3) {
+    if ($p['id_estado'] == 2) { // Aceptado
+        $aceptados[] = $p;
+    } elseif ($p['id_estado'] == 3) { // En preparación
         $en_preparacion[] = $p;
-    } elseif ($p['id_estado'] == 4) {
-        $listos[] = $p;
     }
 }
 ?>
 
-<div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <div>
+        <h3 style="font-size: 1.4rem; font-weight: 700; margin: 0;">Cocina - Gestión de Comandas</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Paso 1: Iniciar preparación de pedidos Aceptados. Paso 2: Marcar como Empacado.</p>
+    </div>
     <button class="btn-ingrediente" onclick="openIngredientesModal()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         Gestionar Ingredientes
@@ -266,18 +267,23 @@ foreach ($pedidos as $p) {
 </div>
 
 <div class="kanban-board">
-    <!-- Columna: Pendientes -->
+    <!-- Columna: Pedidos Aceptados -->
     <div class="kanban-col col-new">
         <div class="col-header">
-            Nuevos Pedidos
-            <span class="count"><?= count($pendientes) ?></span>
+            Pedidos Aceptados
+            <span class="count"><?= count($aceptados) ?></span>
         </div>
-        <?php foreach ($pendientes as $p): ?>
+        <?php if (empty($aceptados)): ?>
+            <div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 0.88rem;">
+                No hay nuevos pedidos aceptados por preparar.
+            </div>
+        <?php endif; ?>
+        <?php foreach ($aceptados as $p): ?>
             <div class="ticket ticket-new">
                 <div class="ticket-header">
                     <div>
-                        <span class="order-id">#<?= str_pad($p['id_pedido'], 4, '0', STR_PAD_LEFT) ?></span>
-                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;"><?= htmlspecialchars($p['cliente_nombre']) ?></div>
+                        <span class="order-id">#<?= str_pad($p['id_pedido'], 5, '0', STR_PAD_LEFT) ?></span>
+                        <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;"><?= htmlspecialchars($p['cliente_nombre']) ?></div>
                     </div>
                     <span class="ticket-time"><?= date('H:i', strtotime($p['fecha'])) ?></span>
                 </div>
@@ -293,9 +299,8 @@ foreach ($pedidos as $p) {
                     <input type="hidden" name="action" value="update_status">
                     <input type="hidden" name="id_pedido" value="<?= $p['id_pedido'] ?>">
                     <input type="hidden" name="id_estado" value="3"> <!-- 3 = En preparación -->
-                    <button type="submit" class="btn-block">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                        Preparar
+                    <button type="submit" class="btn-block" style="background: linear-gradient(135deg, var(--primary), #fb923c);">
+                        🔥 En preparación
                     </button>
                 </form>
             </div>
@@ -308,12 +313,17 @@ foreach ($pedidos as $p) {
             En Preparación
             <span class="count"><?= count($en_preparacion) ?></span>
         </div>
+        <?php if (empty($en_preparacion)): ?>
+            <div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 0.88rem;">
+                No hay pedidos actualmente en preparación.
+            </div>
+        <?php endif; ?>
         <?php foreach ($en_preparacion as $p): ?>
             <div class="ticket ticket-prep">
                 <div class="ticket-header">
                     <div>
-                        <span class="order-id">#<?= str_pad($p['id_pedido'], 4, '0', STR_PAD_LEFT) ?></span>
-                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;"><?= htmlspecialchars($p['cliente_nombre']) ?></div>
+                        <span class="order-id">#<?= str_pad($p['id_pedido'], 5, '0', STR_PAD_LEFT) ?></span>
+                        <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;"><?= htmlspecialchars($p['cliente_nombre']) ?></div>
                     </div>
                     <span class="ticket-time"><?= date('H:i', strtotime($p['fecha'])) ?></span>
                 </div>
@@ -328,46 +338,13 @@ foreach ($pedidos as $p) {
                 <form method="POST" action="pedidos.php" class="ticket-actions">
                     <input type="hidden" name="action" value="update_status">
                     <input type="hidden" name="id_pedido" value="<?= $p['id_pedido'] ?>">
-                    <input type="hidden" name="id_estado" value="4"> <!-- 4 = Listo -->
-                    <button type="submit" class="btn-block">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        Marcar como Listo
+                    <input type="hidden" name="id_estado" value="4"> <!-- 4 = Empacado -->
+                    <button type="submit" class="btn-block" style="background: linear-gradient(135deg, #2ed573, #26af5f);">
+                        📦 Empacado
                     </button>
                 </form>
             </div>
         <?php endforeach; ?>
-    </div>
-
-    <!-- Columna: Listos -->
-    <div class="kanban-col col-ready">
-        <div class="col-header">
-            Listos para Despacho
-            <span class="count"><?= count($listos) ?></span>
-        </div>
-        <?php foreach ($listos as $p): ?>
-            <div class="ticket ticket-ready">
-                <div class="ticket-header">
-                    <div>
-                        <span class="order-id">#<?= str_pad($p['id_pedido'], 4, '0', STR_PAD_LEFT) ?></span>
-                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;"><?= htmlspecialchars($p['cliente_nombre']) ?></div>
-                    </div>
-                    <span class="ticket-time"><?= date('H:i', strtotime($p['fecha'])) ?></span>
-                </div>
-                <ul class="ticket-items">
-                    <?php foreach ($p['detalles'] as $item): ?>
-                        <li>
-                            <span><?= htmlspecialchars($item['nombre_producto']) ?></span>
-                            <strong>x<?= $item['cantidad'] ?></strong>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-                <div class="wait-badge">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    Esperando domiciliario
-                </div>
-            </div>
-        <?php endforeach; ?>
-    </div>
     </div>
 </div>
 

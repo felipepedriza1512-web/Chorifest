@@ -1,9 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-session_start();
-
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/models/UserModel.php';
 require_once __DIR__ . '/models/ProductoModel.php';
@@ -53,16 +48,179 @@ $currentRole = isset($currentUser['rol']) ? (int)$currentUser['rol'] : null;
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
     <title>Chorifest - Gourmet Grill System</title>
     <meta name="description" content="Chorifest - Premium Gourmet Grill System. Authentic flavors.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Fonts: Lora for elegant headings, Inter for UI text, Montserrat for bold modern titles -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@600;700&family=Inter:wght@400;500;600&family=Lora:wght@500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="public/css/styles.css?v=<?= time() ?>">
+    <style>
+    :root {
+      --intro-bg: #0a0303;
+      --intro-ink: #F3ECDA;
+      --intro-soft: #d2b8a2;
+      --intro-accent: #A8391F;
+      --intro-accent-hover: #C2452A;
+      --intro-ember: #ff8a2a;
+      --intro-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+      --intro-sans: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    body.intro-active {
+      overflow: hidden !important;
+    }
+    #intro-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99999;
+      background: var(--intro-bg);
+      color: var(--intro-ink);
+      font-family: var(--intro-sans);
+      overflow: hidden;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      transition: opacity 0.5s ease;
+    }
+    #intro-container #fx,
+    #intro-container #em,
+    #intro-container #bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #intro-container #fx { z-index: 0; }
+    #intro-container #bg { z-index: 1; object-fit: cover; opacity: 0; transition: opacity 1s; }
+    #intro-container #em { z-index: 2; pointer-events: none; }
+    /* grano y viñeta */
+    #intro-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      opacity: .1;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    #intro-container::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+      background: radial-gradient(ellipse at 50% 60%, transparent 40%, rgba(0,0,0,.7) 100%);
+    }
+    #intro-container .screen {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 24px 30vh;
+      text-align: center;
+    }
+    #intro-container .screen[hidden] { display: none; }
+    #intro-container h1 {
+      margin: 0;
+      font-family: var(--intro-serif);
+      font-weight: 800;
+      font-size: clamp(54px, 15vw, 120px);
+      line-height: 1;
+      letter-spacing: -.02em;
+      color: var(--intro-ink);
+      text-shadow: 0 0 60px rgba(255,120,30,.35), 0 3px 0 rgba(0,0,0,.45);
+    }
+    #intro-container h1 span {
+      display: inline-block;
+      opacity: 0;
+      filter: blur(10px);
+      animation: introLetter 1s calc(.9s + var(--i)*.07s) ease-out forwards;
+    }
+    @keyframes introLetter { to { opacity: 1; filter: none; } }
+    #intro-container .sub {
+      margin: 12px 0 0;
+      font-family: var(--intro-serif);
+      font-weight: 600;
+      font-size: clamp(18px, 4.6vw, 26px);
+      color: var(--intro-soft);
+      opacity: 0;
+      animation: introShow .9s 2s forwards;
+    }
+    #intro-container .cta {
+      margin-top: 30px;
+      font: 700 17px/1 var(--intro-sans);
+      color: var(--intro-ink);
+      background: var(--intro-accent);
+      border: 0;
+      border-radius: 999px;
+      padding: 16px 38px;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(168,57,31,.45);
+      opacity: 0;
+      animation: introShow .7s 2.6s forwards;
+      transition: background .15s, transform .15s;
+    }
+    #intro-container .cta:hover {
+      background: var(--intro-accent-hover);
+      transform: translateY(-2px);
+    }
+    #intro-container .cta:focus-visible,
+    #intro-container .skip:focus-visible {
+      outline: 3px solid var(--intro-ember);
+      outline-offset: 3px;
+    }
+    #intro-container .skip {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 14px);
+      right: 16px;
+      background: none;
+      border: 0;
+      color: var(--intro-soft);
+      font: 600 15px var(--intro-sans);
+      cursor: pointer;
+      padding: 8px 10px;
+      opacity: .75;
+    }
+    @keyframes introShow { to { opacity: 1; } }
+    #intro-container .fade {
+      position: absolute;
+      inset: 0;
+      background: var(--intro-bg);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 6;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #intro-container *, #intro-container *::before, #intro-container *::after {
+        animation-duration: .01ms !important;
+        animation-delay: 0s !important;
+      }
+    }
+    </style>
 </head>
-<body>
+<body class="intro-active">
+
+    <!-- ===== INTRO BIENVENIDA ===== -->
+    <div id="intro-container">
+        <canvas id="fx" aria-hidden="true"></canvas>
+        <video id="bg" muted loop playsinline preload="auto" aria-hidden="true"></video>
+        <canvas id="em" aria-hidden="true"></canvas>
+
+        <main id="intro" class="screen">
+            <button class="skip" id="skip" type="button">Saltar</button>
+            <h1 aria-label="Chorifest"><span aria-hidden="true" style="--i:0">C</span><span aria-hidden="true" style="--i:1">h</span><span aria-hidden="true" style="--i:2">o</span><span aria-hidden="true" style="--i:3">r</span><span aria-hidden="true" style="--i:4">i</span><span aria-hidden="true" style="--i:5">f</span><span aria-hidden="true" style="--i:6">e</span><span aria-hidden="true" style="--i:7">s</span><span aria-hidden="true" style="--i:8">t</span></h1>
+            <p class="sub">Gourmet Grill System</p>
+            <button class="cta" id="enter" type="button">Ver el menú</button>
+        </main>
+        <div class="fade" id="fade"></div>
+    </div>
 
     <!-- ===== NAVBAR ===== -->
     <header class="navbar">
@@ -86,18 +244,18 @@ $currentRole = isset($currentUser['rol']) ? (int)$currentUser['rol'] : null;
                     <span class="nav-user"><?= htmlspecialchars($currentUser['name'] ?? 'Usuario') ?></span>
                 </div>
                 <?php if ($currentRole === 2): ?>
-                    <a href="/controllers/admin/dashboard.php" class="btn btn-primary btn-sm">Ir al Panel Admin</a>
+                    <a href="<?= baseUrl('/controllers/admin/dashboard.php') ?>" class="btn btn-primary btn-sm">Ir al Panel Admin</a>
                 <?php elseif ($currentRole === 3): ?>
-                    <a href="/controllers/cocinera/pedidos.php" class="btn btn-primary btn-sm">Ir al Panel Cocina</a>
+                    <a href="<?= baseUrl('/controllers/cocinera/pedidos.php') ?>" class="btn btn-primary btn-sm">Ir al Panel Cocina</a>
                 <?php elseif ($currentRole === 4): ?>
-                    <a href="/controllers/domiciliario/rutas.php" class="btn btn-primary btn-sm">Ir al Panel Rutas</a>
+                    <a href="<?= baseUrl('/controllers/domiciliario/rutas.php') ?>" class="btn btn-primary btn-sm">Ir al Panel Rutas</a>
                 <?php else: ?>
-                    <a href="/controllers/cliente/catalogo.php" class="btn btn-primary btn-sm">Ir a Tienda</a>
+                    <a href="<?= baseUrl('/controllers/cliente/catalogo.php') ?>" class="btn btn-primary btn-sm">Ir a Tienda</a>
                 <?php endif; ?>
-                <a href="/controllers/auth/logout.php" class="btn btn-outline btn-sm">Cerrar sesión</a>
+                <a href="<?= baseUrl('/controllers/auth/logout.php') ?>" class="btn btn-outline btn-sm">Cerrar sesión</a>
             <?php else: ?>
-                <a href="/controllers/auth/login.php" class="btn btn-primary btn-sm">Iniciar sesión</a>
-                <a href="/controllers/auth/register.php" class="btn btn-primary btn-sm">Registrarse</a>
+                <a href="<?= baseUrl('/controllers/auth/login.php') ?>" class="btn btn-primary btn-sm">Iniciar sesión</a>
+                <a href="<?= baseUrl('/controllers/auth/register.php') ?>" class="btn btn-primary btn-sm">Registrarse</a>
             <?php endif; ?>
         </nav>
         <button class="hamburger" id="hamburger" aria-label="Menú">
@@ -172,8 +330,6 @@ $currentRole = isset($currentUser['rol']) ? (int)$currentUser['rol'] : null;
         </div>
     </section>
 
-
-
     <!-- ===== FOOTER ===== -->
     <footer class="footer">
         <div class="footer-inner">
@@ -199,6 +355,111 @@ $currentRole = isset($currentUser['rol']) ? (int)$currentUser['rol'] : null;
         </div>
     </footer>
 
+    <!-- ===== INTRO SCRIPT ===== -->
+    <script>
+    (function(){
+      var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ---- paso al menú ---- */
+      var introContainer=document.getElementById('intro-container'),
+          fade=document.getElementById('fade'),
+          busy=false;
+
+      function swap(toMenu){
+        if(busy)return;busy=true;var t=reduce?1:420;
+        if(fade.animate) {
+          fade.animate([{opacity:0},{opacity:1}],{duration:t,fill:'forwards'}).finished.then(function(){
+            if(toMenu) {
+              introContainer.style.display='none';
+              document.body.classList.remove('intro-active');
+            }
+            return fade.animate([{opacity:1},{opacity:0}],{duration:t,fill:'forwards'}).finished;
+          }).then(function(){busy=false;});
+        } else {
+          introContainer.style.display='none';
+          document.body.classList.remove('intro-active');
+          busy=false;
+        }
+      }
+
+      var enterBtn = document.getElementById('enter');
+      var skipBtn = document.getElementById('skip');
+      if(enterBtn) enterBtn.onclick=function(){ swap(true); };
+      if(skipBtn) skipBtn.onclick=function(){ swap(true); };
+
+      /* ---- video real opcional: si existe fondo.mp4 junto a este archivo, se usa ---- */
+      var v=document.getElementById('bg');
+      if(v) {
+        v.addEventListener('canplay',function(){v.style.opacity=.9;v.play().catch(function(){})});
+        v.src='fondo.mp4';
+      }
+
+      /* ---- fuego (shader) ---- */
+      var fx=document.getElementById('fx');
+      if(fx) {
+        var gl=fx.getContext('webgl',{antialias:false});
+        var T0=performance.now();
+        if(gl){
+          var vs='attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+          var fs='precision highp float;uniform vec2 r;uniform float t;'+
+          'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
+          'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}'+
+          'float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return s;}'+
+          'void main(){vec2 uv=gl_FragCoord.xy/r;float asp=r.x/r.y;vec2 p=vec2(uv.x*asp,uv.y);float T=t;'+
+          'vec2 q=vec2(p.x*3.4,p.y*2.5-T*.8);'+
+          'float w1=fbm(q);float w2=fbm(q*1.8+vec2(w1*1.8,-T*.45));'+
+          'float shape=fbm(vec2(q.x+w2*.9,q.y+w1*.6));'+
+          'float edge=1.-smoothstep(.5,1.,abs(uv.x-.5)*2.);'+
+          'float hg=1.-smoothstep(.02,.5,uv.y);'+
+          'float f=(shape*1.7-.34)*hg*1.55+hg*hg*.12-.1;f*=mix(.45,1.,edge);f=clamp(f,0.,1.);'+
+          'vec3 col=vec3(.03,.008,.008)+vec3(.13,.03,.015)*pow(1.-uv.y,2.);'+
+          'col+=vec3(1.,.1,.02)*smoothstep(.05,.45,f)*.9;'+
+          'col=mix(col,vec3(1.,.45,.07),smoothstep(.3,.8,f));'+
+          'col=mix(col,vec3(1.,.8,.4),smoothstep(.86,1.,f)*.55);'+
+          'float s=fbm(vec2(p.x*1.3,p.y-T*.1)+w1);col+=vec3(.45,.3,.22)*s*.08*smoothstep(.15,.5,uv.y)*(1.-smoothstep(.6,1.,uv.y));'+
+          'float b1=smoothstep(.008,.003,abs(uv.y-.2)),b2=smoothstep(.006,.002,abs(uv.y-.14));col*=1.-.93*max(b1,b2);'+
+          'col*=.93+.07*sin(T*11.+sin(T*3.7)*3.);gl_FragColor=vec4(col,1.);}';
+          function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s}
+          var pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);gl.useProgram(pr);
+          var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+          var a=gl.getAttribLocation(pr,'a');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
+          var ur=gl.getUniformLocation(pr,'r'),ut=gl.getUniformLocation(pr,'t');
+          function rs(){var k=.6;fx.width=Math.round(innerWidth*k);fx.height=Math.round(innerHeight*k);gl.viewport(0,0,fx.width,fx.height)}
+          rs();addEventListener('resize',rs);
+          (function draw(now){
+            if(introContainer.style.display==='none')return;
+            gl.uniform2f(ur,fx.width,fx.height);gl.uniform1f(ut,reduce?3:(now-T0)/1000);
+            gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+            if(!reduce)requestAnimationFrame(draw);
+          })(T0);
+        }
+      }
+
+      /* ---- brasas ---- */
+      if(reduce)return;
+      var c=document.getElementById('em');
+      if(!c)return;
+      var x=c.getContext('2d'),W,H,P=[],dpr=Math.min(devicePixelRatio||1,2);
+      function size(){W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
+      size();addEventListener('resize',size);
+      function spawn(){P.push({x:W*(.1+Math.random()*.8),y:H*(.86+Math.random()*.1),vx:(Math.random()-.5)*.4,vy:-(.6+Math.random()*1.4),
+        r:.7+Math.random()*2,life:0,max:120+Math.random()*180,ph:Math.random()*6.28})}
+      (function loop(){
+        if(introContainer.style.display==='none')return;
+        x.clearRect(0,0,W,H);
+        if(P.length<90&&Math.random()<.6)spawn();
+        for(var i=P.length-1;i>=0;i--){var p=P[i];p.life++;
+          if(p.life>p.max){P.splice(i,1);continue}
+          p.x+=p.vx+Math.sin(p.life*.045+p.ph)*.35;p.y+=p.vy;
+          var k=p.life/p.max,a=Math.sin(Math.PI*k)*(.65+.35*Math.sin(p.life*.35+p.ph));
+          x.beginPath();x.fillStyle='rgba(255,'+(110+Math.floor(100*(1-k)))+',40,'+Math.max(a,0)+')';
+          x.shadowColor='rgba(255,130,40,.95)';x.shadowBlur=8;x.arc(p.x,p.y,p.r,0,6.283);x.fill();}
+        requestAnimationFrame(loop);
+      })();
+    })();
+    </script>
+
+    <!-- ===== EXISTING SITE SCRIPTS ===== -->
     <script>
         // Smooth Category Filtering
         const tabs = document.querySelectorAll('.cat-tab');
@@ -291,5 +552,6 @@ $currentRole = isset($currentUser['rol']) ? (int)$currentUser['rol'] : null;
             });
         });
     </script>
+    <script src="<?= function_exists('baseUrl') ? baseUrl('/chorifest-fondo.js') : 'chorifest-fondo.js' ?>"></script>
 </body>
 </html>

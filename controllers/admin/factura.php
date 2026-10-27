@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once __DIR__ . '/../auth/AuthMiddleware.php';
 checkRole(2); // Solo administradores pueden acceder a facturas de todos
 require_once __DIR__ . '/../../config/database.php';

@@ -1,0 +1,6 @@
+# Apache 2.4 - Solo servir archivos de imagen permitidos
+Require all denied
+
+<FilesMatch "^[a-zA-Z0-9_\-]+\.(jpe?g|png|webp)$">
+    Require all granted
+</FilesMatch>

@@ -1,3 +1,27 @@
+<?php
+require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
+if (!isset($authController)) {
+    require_once __DIR__ . '/../../config/database.php';
+    require_once __DIR__ . '/../../models/UserModel.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthController.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthMiddleware.php';
+    enforceSecureSession();
+    $db = getDatabaseConnection();
+    $userModel = new UserModel($db);
+    $authController = new AuthController($userModel);
+
+    $email = $_GET['email'] ?? '';
+    $message = null;
+    $isSuccess = true;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reset_password') {
+        $result = $authController->handleResetPassword($_POST);
+        $message = $result['message'];
+        $isSuccess = $result['success'];
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -211,7 +235,7 @@
                     <input type="hidden" name="email" value="<?= htmlspecialchars($email) ?>">
                     
                     <div class="input-group">
-                        <input type="text" name="code" placeholder="Código de 6 dígitos" required maxlength="6" pattern="\d{6}">
+                        <input type="text" name="code" placeholder="Token de recuperación" required value="<?= htmlspecialchars($_GET['token'] ?? ($_POST['code'] ?? '')) ?>">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                     </div>
 
@@ -235,5 +259,6 @@
         </div>
     </div>
 
+    <script src="<?= function_exists('baseUrl') ? baseUrl('/chorifest-fondo.js') : '../../chorifest-fondo.js' ?>"></script>
 </body>
 </html>

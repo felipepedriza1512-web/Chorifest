@@ -259,6 +259,17 @@
     <p style="color: var(--text-muted); font-size: 1.1rem;">Descubre los mejores sabores a la parrilla.</p>
 </div>
 
+<?php if (!empty($_SESSION['cart_error'])): ?>
+    <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 12px; padding: 16px 20px; margin: 0 auto 30px auto; max-width: 1200px; color: #fca5a5; display: flex; align-items: flex-start; gap: 14px; box-shadow: 0 8px 24px rgba(239,68,68,0.25);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div>
+            <strong style="color: #ef4444; display:block; margin-bottom: 4px; font-size: 1rem;">Stock global insuficiente:</strong>
+            <span style="font-size: 0.95rem; line-height: 1.4;"><?= htmlspecialchars($_SESSION['cart_error']) ?></span>
+        </div>
+    </div>
+    <?php unset($_SESSION['cart_error']); ?>
+<?php endif; ?>
+
 <div class="categories-bar">
     <a href="catalogo.php" class="category-btn <?= $categoriaActiva === 0 ? 'active' : '' ?>">Todos</a>
     <?php foreach ($categorias as $cat): ?>
@@ -278,7 +289,7 @@
                     <div class="card-reflection"></div>
                     
                     <?php 
-                        $imgUrl = $productoModel->getImagenUrl($prod['nombre_producto'], $prod['id_producto'], 600);
+                        $imgUrl = $productoModel->getImagenUrl($prod['nombre_producto'], $prod['id_producto'], $prod['imagen'] ?? null, 600);
                     ?>
                     <div class="product-image-container">
                         <?php if (!$prod['disponible']): ?>
@@ -287,19 +298,30 @@
                         <img src="<?= $imgUrl ?>" alt="<?= htmlspecialchars($prod['nombre_producto']) ?>" class="product-image">
                     </div>
                     
+                    <?php 
+                        $st = $stockStatus[$prod['id_producto']] ?? null;
+                        $maxCant = $st ? $st['cantidad_maxima'] : null;
+                    ?>
                     <div class="product-info">
-                        <h3 class="product-title"><?= htmlspecialchars($prod['nombre_producto']) ?></h3>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                            <h3 class="product-title" style="margin-bottom:0;"><?= htmlspecialchars($prod['nombre_producto']) ?></h3>
+                            <?php if ($maxCant !== null): ?>
+                                <span class="badge-stock-max" style="font-size:0.75rem; color:#f97316; font-weight:700; background:rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.3); padding:2px 8px; border-radius:12px; white-space:nowrap; margin-left:8px;" title="Límite máximo según stock actual de insumos">
+                                    Máx: <?= $maxCant ?> uds
+                                </span>
+                            <?php endif; ?>
+                        </div>
                         <p class="product-desc"><?= htmlspecialchars($prod['descripcion'] ?? 'Delicioso producto a la parrilla preparado al instante.') ?></p>
                         <div class="product-footer">
                             <span class="product-price">$<?= number_format($prod['precio'], 2) ?></span>
                             
-                            <?php if ($prod['disponible']): ?>
-                                <form action="carrito.php" method="POST" style="margin:0;">
+                            <?php if ($prod['disponible'] && ($maxCant === null || $maxCant > 0)): ?>
+                                <form action="carrito.php" method="POST" style="margin:0; display:flex; align-items:center; gap:6px;">
                                     <input type="hidden" name="action" value="add">
                                     <input type="hidden" name="id_producto" value="<?= $prod['id_producto'] ?>">
-                                    <input type="hidden" name="cantidad" value="1">
+                                    <input type="number" name="cantidad" value="1" min="1" <?= $maxCant !== null ? 'max="' . $maxCant . '"' : 'max="99"' ?> style="width:48px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:white; border-radius:8px; padding:6px 2px; text-align:center; font-weight:bold; font-size:0.88rem;" title="Cantidad (Máx: <?= $maxCant !== null ? $maxCant : 'ilimitado' ?>)">
                                     <button type="submit" class="btn-add">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                         Añadir
                                     </button>
                                 </form>
@@ -357,5 +379,32 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.transition = 'transform 0.1s ease-out'; // Fast tracking when entering
         });
     });
+
+    // Pausar polling cuando la pestaña no esté visible (Regla 5 del prompt)
+    let catalogPollInterval = null;
+    function startCatalogPolling() {
+        if (!catalogPollInterval) {
+            catalogPollInterval = setInterval(() => {
+                if (!document.hidden) {
+                    // Si se necesitara refrescar productos dinámicamente
+                }
+            }, 15000);
+        }
+    }
+    function stopCatalogPolling() {
+        if (catalogPollInterval) {
+            clearInterval(catalogPollInterval);
+            catalogPollInterval = null;
+        }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopCatalogPolling();
+        } else {
+            startCatalogPolling();
+        }
+    });
+    startCatalogPolling();
 });
 </script>

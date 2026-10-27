@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once __DIR__ . '/../auth/AuthMiddleware.php';
 checkClientOnly(); // Solo clientes pueden acceder a sus facturas
 require_once __DIR__ . '/../../config/database.php';
@@ -24,7 +23,8 @@ if (!$pedido) {
 
 // Validar que el pedido pertenece al cliente logueado
 if ($pedido['id_cliente'] != $currentUser['id']) {
-    die("No tienes permiso para ver esta factura.");
+    http_response_code(403);
+    die("403 Prohibido: No tienes permiso para ver esta factura.");
 }
 
 $pageTitle = 'Factura Pedido #' . str_pad($pedido['id_pedido'], 4, '0', STR_PAD_LEFT);

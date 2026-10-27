@@ -1,4 +1,42 @@
-<!DOCTYPE html>
+<?php
+require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
+if (!isset($authController)) {
+    require_once __DIR__ . '/../../config/database.php';
+    require_once __DIR__ . '/../../models/UserModel.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthController.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthMiddleware.php';
+    enforceSecureSession();
+    $db = getDatabaseConnection();
+    $userModel = new UserModel($db);
+    $authController = new AuthController($userModel);
+
+    $currentUser = $_SESSION['user'] ?? null;
+    $message = null;
+    $isSuccess = true;
+
+    if (isset($_GET['error']) && $_GET['error'] === 'inactivo') {
+        $message = "Tu cuenta se encuentra inactiva o ha sido desactivada por un administrador.";
+        $isSuccess = false;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'login') {
+        $result = $authController->handleLogin($_POST);
+        $message = $result['message'];
+        $isSuccess = $result['success'];
+
+        if ($isSuccess) {
+            if (!empty($result['user']['debe_cambiar_password'])) {
+                header('Location: ' . baseUrl('/controllers/auth/cambiar_password_obligatorio.php'));
+                exit;
+            }
+            $rol = (int)($result['user']['rol'] ?? 1);
+            header('Location: ' . getRoleRedirectUrl($rol));
+            exit;
+        }
+    }
+}
+?>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -290,16 +328,19 @@
                 <?php 
                     $roleId = (int)($currentUser['rol'] ?? $currentUser['id_rol'] ?? 1);
                     $roleLabel = 'Cliente';
-                    $roleUrl = '../cliente/catalogo.php';
-                    if ($roleId === 2) { $roleLabel = 'Administrador'; $roleUrl = '../admin/dashboard.php'; }
-                    elseif ($roleId === 3) { $roleLabel = 'Cocinera'; $roleUrl = '../cocinera/pedidos.php'; }
-                    elseif ($roleId === 4) { $roleLabel = 'Domiciliario'; $roleUrl = '../domiciliario/rutas.php'; }
+                    $roleUrl = baseUrl('/controllers/cliente/catalogo.php');
+                    if ($roleId === 2) { $roleLabel = 'Administrador'; $roleUrl = baseUrl('/controllers/admin/dashboard.php'); }
+                    elseif ($roleId === 3) { $roleLabel = 'Cocinera'; $roleUrl = baseUrl('/controllers/cocinera/pedidos.php'); }
+                    elseif ($roleId === 4) { $roleLabel = 'Domiciliario'; $roleUrl = baseUrl('/controllers/domiciliario/rutas.php'); }
                 ?>
-                <div style="background: rgba(234, 88, 12, 0.15); border: 1px solid rgba(234, 88, 12, 0.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.9rem; color: #fff; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
+                <div style="background: rgba(234, 88, 12, 0.15); border: 1px solid rgba(234, 88, 12, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 0.9rem; color: #fff; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span>Sesión activa: <strong><?= htmlspecialchars($currentUser['name'] ?? 'Usuario') ?></strong> (<?= $roleLabel ?>)</span>
+                        <a href="<?= $roleUrl ?>" style="color: #fb923c; font-weight: 700; text-decoration: none;">Ir a mi panel &rarr;</a>
                     </div>
-                    <a href="<?= $roleUrl ?>" style="color: #fb923c; font-weight: 700; text-decoration: none;">Ir a mi panel &rarr;</a>
+                    <div style="text-align: right; font-size: 0.8rem;">
+                        <a href="<?= baseUrl('/controllers/auth/logout.php') ?>" style="color: #ef4444; text-decoration: underline;">Cerrar sesión actual</a>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -315,16 +356,16 @@
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="login.php">
+            <form method="POST" action="" id="loginForm">
                 <input type="hidden" name="action" value="login">
                 
                 <div class="input-group">
-                    <input type="email" name="email" placeholder="Correo Electrónico" required>
+                    <input type="email" id="emailInput" name="email" placeholder="Correo Electrónico" required>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                 </div>
 
                 <div class="input-group">
-                    <input type="password" name="password" placeholder="Contraseña" required>
+                    <input type="password" id="passwordInput" name="password" placeholder="Contraseña" required>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
 
@@ -338,5 +379,6 @@
         </div>
     </div>
 
+    <script src="<?= function_exists('baseUrl') ? baseUrl('/chorifest-fondo.js') : '../../chorifest-fondo.js' ?>"></script>
 </body>
 </html>

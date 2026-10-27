@@ -217,12 +217,15 @@
                             <?= htmlspecialchars($p['estado_pago'] ?? 'Pendiente') ?>
                         </span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <a href="factura.php?id=<?= $p['id_pedido'] ?>" target="_blank" style="text-decoration: none; display: flex; align-items: center; gap: 5px; color: var(--primary); font-size: 0.9rem; font-weight: 600; padding: 5px 10px; border: 1px solid rgba(255, 75, 43, 0.3); border-radius: 8px; transition: all 0.3s;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                            Ver Factura
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <a href="seguimiento.php?id=<?= $p['id_pedido'] ?>" style="text-decoration: none; display: flex; align-items: center; gap: 6px; color: white; background: linear-gradient(135deg, var(--primary), #fb923c); font-size: 0.88rem; font-weight: 700; padding: 7px 14px; border-radius: 8px; box-shadow: 0 4px 12px var(--primary-glow);">
+                            📍 Seguimiento en Vivo
                         </a>
-                        <div class="pedido-total">
+                        <a href="factura.php?id=<?= $p['id_pedido'] ?>" target="_blank" style="text-decoration: none; display: flex; align-items: center; gap: 5px; color: var(--primary); font-size: 0.88rem; font-weight: 600; padding: 6px 10px; border: 1px solid rgba(255, 75, 43, 0.3); border-radius: 8px; transition: all 0.3s;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            Factura
+                        </a>
+                        <div class="pedido-total" style="margin-left: auto;">
                             Total: $<?= number_format($p['total'], 2) ?>
                         </div>
                     </div>

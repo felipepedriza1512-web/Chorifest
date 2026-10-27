@@ -1,7 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
 $currentUser = $_SESSION['user'] ?? null;
 
 $cartCount = 0;
@@ -186,18 +185,18 @@ if (isset($_SESSION['carrito'])) {
 </head>
 <body>
     <nav class="navbar">
-        <a href="/controllers/cliente/catalogo.php" class="nav-brand">CHORIFEST.</a>
+        <a href="<?= baseUrl('/controllers/cliente/catalogo.php') ?>" class="nav-brand">CHORIFEST.</a>
         
         <div class="nav-links">
-            <a href="/controllers/cliente/catalogo.php" class="nav-item <?= ($currentPage ?? '') === 'catalogo' ? 'active' : '' ?>">
+            <a href="<?= baseUrl('/controllers/cliente/catalogo.php') ?>" class="nav-item <?= ($currentPage ?? '') === 'catalogo' ? 'active' : '' ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 Menú
             </a>
-            <a href="/controllers/cliente/pedidos.php" class="nav-item <?= ($currentPage ?? '') === 'pedidos' ? 'active' : '' ?>">
+            <a href="<?= baseUrl('/controllers/cliente/pedidos.php') ?>" class="nav-item <?= ($currentPage ?? '') === 'pedidos' ? 'active' : '' ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 Mis Pedidos
             </a>
-            <a href="/controllers/cliente/carrito.php" class="nav-item cart-icon <?= ($currentPage ?? '') === 'carrito' ? 'active' : '' ?>">
+            <a href="<?= baseUrl('/controllers/cliente/carrito.php') ?>" class="nav-item cart-icon <?= ($currentPage ?? '') === 'carrito' ? 'active' : '' ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
                 Carrito
                 <?php if($cartCount > 0): ?>
@@ -213,10 +212,10 @@ if (isset($_SESSION['carrito'])) {
                 </div>
                 <div>
                     <div class="user-name"><?= htmlspecialchars($currentUser['name'] ?? 'Usuario') ?></div>
-                    <a href="/controllers/auth/logout.php" class="btn-logout">Cerrar sesión</a>
+                    <a href="<?= baseUrl('/controllers/auth/logout.php') ?>" class="btn-logout">Cerrar sesión</a>
                 </div>
             <?php else: ?>
-                <a href="/controllers/auth/login.php" class="nav-item">Iniciar Sesión</a>
+                <a href="<?= baseUrl('/controllers/auth/login.php') ?>" class="nav-item">Iniciar Sesión</a>
             <?php endif; ?>
         </div>
     </nav>

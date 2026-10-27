@@ -34,6 +34,9 @@ class AuthController
         );
 
         if ($result['success'] ?? false) {
+            // Regenerar ID de sesión para prevenir Session Fixation
+            session_regenerate_id(true);
+
             // Limpieza total previa para evitar cualquier residuo de roles anteriores
             $_SESSION = [];
             $_SESSION['user'] = $result['user'];
@@ -63,36 +66,42 @@ class AuthController
     {
         $email = strtolower(trim($input['email'] ?? ''));
 
-        if ($email === '') {
-            return ['success' => false, 'message' => 'Ingresa tu correo electrónico.'];
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'message' => 'Ingresa un correo electrónico válido.'];
         }
 
         $user = $this->userModel->findByEmail($email);
-        if (!$user) {
-            return ['success' => true, 'message' => 'Si el correo existe, se enviará un código de recuperación.'];
-        }
-
-        $code = sprintf("%06d", mt_rand(1, 999999));
         
-        if ($this->userModel->saveRecoveryCode($email, $code)) {
-            $subject = "Código de Recuperación - Chorifest";
-            $message = "Tu código de recuperación es: " . $code . "\nExpira en 15 minutos.";
-            $headers = "From: noreply@chorifest.local\r\n";
+        // Respuesta siempre idéntica exista o no el correo (previene enumeración de usuarios)
+        $genericSuccessResponse = [
+            'success' => true, 
+            'message' => 'Si el correo existe en el sistema, recibirás las instrucciones para restablecer tu contraseña.'
+        ];
+
+        if ($user) {
+            // Token criptográficamente seguro de 32 caracteres hexadecimales
+            $token = bin2hex(random_bytes(16));
             
-            mail($email, $subject, $message, $headers);
+            if ($this->userModel->saveRecoveryCode($email, $token)) {
+                $subject = "Restablecer Contraseña - Chorifest";
+                $message = "Has solicitado restablecer tu contraseña.\nToken: " . $token . "\nExpira en 15 minutos y es de un solo uso.";
+                $headers = "From: noreply@chorifest.local\r\n";
+                
+                @mail($email, $subject, $message, $headers);
+            }
         }
 
-        return ['success' => true, 'message' => 'Si el correo existe, se enviará un código de recuperación.'];
+        return $genericSuccessResponse;
     }
 
     public function handleResetPassword(array $input): array
     {
         $email = strtolower(trim($input['email'] ?? ''));
-        $code = trim($input['code'] ?? '');
+        $token = trim($input['code'] ?? $input['token'] ?? '');
         $password = $input['password'] ?? '';
         $confirmPassword = $input['password_confirm'] ?? '';
 
-        if ($email === '' || $code === '' || $password === '') {
+        if ($email === '' || $token === '' || $password === '') {
             return ['success' => false, 'message' => 'Todos los campos son obligatorios.'];
         }
 
@@ -104,8 +113,8 @@ class AuthController
             return ['success' => false, 'message' => 'La contraseña debe tener al menos 6 caracteres.'];
         }
 
-        if (!$this->userModel->verifyRecoveryCode($email, $code)) {
-            return ['success' => false, 'message' => 'El código de recuperación es incorrecto o ha expirado.'];
+        if (!$this->userModel->verifyRecoveryCode($email, $token)) {
+            return ['success' => false, 'message' => 'El código de recuperación es incorrecto, ya fue utilizado o ha expirado.'];
         }
 
         if ($this->userModel->updatePassword($email, $password)) {

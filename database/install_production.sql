@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- CHORIFEST: SCRIPT DE INSTALACION LIMPIA DE PRODUCCION
 -- ============================================================
 -- USO:
@@ -137,16 +137,10 @@ ol (id_rol)
 
 -- ============================================================
 -- ADMINISTRADOR INICIAL DE PRODUCCION
--- Contrasena temporal: Chorifest@2026!
--- DEBE CAMBIARSE EN EL PRIMER LOGIN (debe_cambiar_password = 1)
--- Hash: bcrypt de "Chorifest@2026!" generado con PASSWORD_BCRYPT cost=12
--- Regenerar con: php -r "echo password_hash('Chorifest@2026!', PASSWORD_BCRYPT, ['cost'=>12]);"
+-- NOTA: La contraseña no está hardcodeada. Ejecute:
+--   php install.php
+-- para crear las tablas y generar la contraseña aleatoria única del Administrador.
 -- ============================================================
-INSERT INTO usuario (id_rol, 
-ombre, correo, password_hash, 	elefono, estado, debe_cambiar_password) VALUES
-  (2, 'Administrador', 'admin@chorifest.com',
-   '\\\.Hash.Reemplazar.Con.PHP.password_hash.Run',
-   NULL, 'ACTIVO', 1);
 
 -- ========== TABLAS ADICIONALES (esquema sin datos de prueba) ==========
 -- Nota: Las demas tablas (pedido, pago, producto, etc.) se crean vacias.

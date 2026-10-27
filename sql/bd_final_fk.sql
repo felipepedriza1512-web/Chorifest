@@ -418,7 +418,7 @@ CREATE TABLE `usuario` (
   CONSTRAINT `usuario_ibfk_1` FOREIGN KEY (`id_rol`) REFERENCES `rol` (`id_rol`)
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 LOCK TABLES `usuario` WRITE;
-INSERT INTO `usuario` VALUES (1,1,'Andres Felipe','andres@chorizoexpress.com','hash001','3001111111','ACTIVO','2026-08-14 10:51:12'),(2,1,'Maria Fernanda','maria@chorizoexpress.com','hash002','3002222222','ACTIVO','2026-08-14 10:51:12'),(3,2,'Carlos Gomez','carlos.admin@chorizoexpress.com','hash003','3003333333','ACTIVO','2026-08-14 10:51:12'),(4,3,'Laura Torres','laura.cocina@chorizoexpress.com','$2y$10$3z4fk./9inMoYpCb/Wd86ORVDfVoDU20o546F2341ebR/NmG6m.76','3004444444','ACTIVO','2026-08-14 10:51:12'),(5,4,'Juan Perez','juan.domicilio@chorizoexpress.com','hash005','3005555555','ACTIVO','2026-08-14 10:51:12'),(6,1,'Sofia Ramirez','sofia@chorizoexpress.com','hash006','3006666666','ACTIVO','2026-08-14 10:51:12'),(7,1,'Daniel Castro','daniel@chorizoexpress.com','hash007','3007777777','ACTIVO','2026-08-14 10:51:12'),(8,5,'Paula Martinez','paula.supervisor@chorizoexpress.com','hash008','3008888888','ACTIVO','2026-08-14 10:51:12'),(9,6,'Diego Rojas','diego.cajero@chorizoexpress.com','hash009','3009999999','ACTIVO','2026-08-14 10:51:12'),(10,8,'Valentina Ruiz','valentina.inventario@chorizoexpress.com','hash010','3010000000','ACTIVO','2026-08-14 10:51:12'),(11,1,'Andres felipe','felipe@gmail.com','$2y$10$0gCDJmhsbnkXYv2MdAhE6ORa8890gn3f47Zg0AtZygftSfbyOwE2a','3228460174','ACTIVO','2026-08-20 20:04:42'),(12,2,'Natalia fernanda','nata@gamil.com','$2y$10$JZQCKdo8cexgBmn4Wdjx5uiu2ZWI5y6eMM4DQtAGpX4ChYsCaRwEu','3103158909','ACTIVO','2026-08-20 20:06:00'),(13,1,'juan','juan@gmail.com','$2y$10$umvIWuMpJBGda5Ks1tJICu53DbEf9aERWh7HwGIZxhQYPX/KefXQa','3115679856','ACTIVO','2026-08-20 20:49:45'),(14,2,'admin','admin@gmail.com','$2y$10$o353nPjeOhZE2iQYfGgm0e1RnRJWTBFBreJfOTA4IW.5IWuRNTF62','3228460174','ACTIVO','2026-08-20 22:44:39'),(15,3,'cocina','cocina@gmail.com','$2y$10$3z4fk./9inMoYpCb/Wd86ORVDfVoDU20o546F2341ebR/NmG6m.76','3456782345','ACTIVO','2026-08-20 23:40:20'),(16,4,'domi','domi@gmail.com','$2y$10$T.nSs9jOkAml8Ri/lfeU6erKEg1pONc/LQgYN3j.fZ2ZjsVB47xBC','3216730989','ACTIVO','2026-08-20 23:41:55');
+INSERT INTO `usuario` VALUES (1,1,'Andres Felipe','andres@chorizoexpress.com','hash001','3001111111','ACTIVO','2026-08-14 10:51:12'),(2,1,'Maria Fernanda','maria@chorizoexpress.com','hash002','3002222222','ACTIVO','2026-08-14 10:51:12'),(3,2,'Carlos Gomez','carlos.admin@chorizoexpress.com','hash003','3003333333','ACTIVO','2026-08-14 10:51:12'),(4,3,'Laura Torres','laura.cocina@chorizoexpress.com','$2y$10$3z4fk./9inMoYpCb/Wd86ORVDfVoDU20o546F2341ebR/NmG6m.76','3004444444','ACTIVO','2026-08-14 10:51:12'),(5,4,'Juan Perez','juan.domicilio@chorizoexpress.com','hash005','3005555555','ACTIVO','2026-08-14 10:51:12'),(6,1,'Sofia Ramirez','sofia@chorizoexpress.com','hash006','3006666666','ACTIVO','2026-08-14 10:51:12'),(7,1,'Daniel Castro','daniel@chorizoexpress.com','hash007','3007777777','ACTIVO','2026-08-14 10:51:12'),(8,2,'Paula Martinez','paula.supervisor@chorizoexpress.com','hash008','3008888888','ACTIVO','2026-08-14 10:51:12'),(9,2,'Diego Rojas','diego.cajero@chorizoexpress.com','hash009','3009999999','ACTIVO','2026-08-14 10:51:12'),(10,2,'Valentina Ruiz','valentina.inventario@chorizoexpress.com','hash010','3010000000','ACTIVO','2026-08-14 10:51:12'),(11,1,'Andres felipe','felipe@gmail.com','$2y$10$0gCDJmhsbnkXYv2MdAhE6ORa8890gn3f47Zg0AtZygftSfbyOwE2a','3228460174','ACTIVO','2026-08-20 20:04:42'),(12,2,'Natalia fernanda','nata@gamil.com','$2y$10$JZQCKdo8cexgBmn4Wdjx5uiu2ZWI5y6eMM4DQtAGpX4ChYsCaRwEu','3103158909','ACTIVO','2026-08-20 20:06:00'),(13,1,'juan','juan@gmail.com','$2y$10$umvIWuMpJBGda5Ks1tJICu53DbEf9aERWh7HwGIZxhQYPX/KefXQa','3115679856','ACTIVO','2026-08-20 20:49:45'),(14,2,'admin','admin@gmail.com','$2y$10$o353nPjeOhZE2iQYfGgm0e1RnRJWTBFBreJfOTA4IW.5IWuRNTF62','3228460174','ACTIVO','2026-08-20 22:44:39'),(15,3,'cocina','cocina@gmail.com','$2y$10$3z4fk./9inMoYpCb/Wd86ORVDfVoDU20o546F2341ebR/NmG6m.76','3456782345','ACTIVO','2026-08-20 23:40:20'),(16,4,'domi','domi@gmail.com','$2y$10$T.nSs9jOkAml8Ri/lfeU6erKEg1pONc/LQgYN3j.fZ2ZjsVB47xBC','3216730989','ACTIVO','2026-08-20 23:41:55');
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `zona_envio`;
 CREATE TABLE `zona_envio` (
@@ -433,4 +433,21 @@ CREATE TABLE `zona_envio` (
 LOCK TABLES `zona_envio` WRITE;
 INSERT INTO `zona_envio` VALUES (1,'Centro',5000.00,20,'ACTIVA'),(2,'Norte',6000.00,30,'ACTIVA'),(3,'Sur',6000.00,30,'ACTIVA'),(4,'Oriente',7000.00,35,'ACTIVA'),(5,'Occidente',7000.00,35,'ACTIVA'),(6,'Barrio Modelo',5000.00,20,'ACTIVA'),(7,'El Recreo',5000.00,20,'ACTIVA'),(8,'La Esmeralda',6000.00,25,'ACTIVA'),(9,'Los Andes',7000.00,40,'ACTIVA'),(10,'Zona Universitaria',6000.00,25,'ACTIVA'),(11,'Rivera',15000.00,60,'ACTIVA'),(12,'Campoalegre',30000.00,60,'ACTIVA');
 UNLOCK TABLES;
+
+DROP TABLE IF EXISTS `ingrediente`;
+CREATE TABLE IF NOT EXISTS `ingrediente` (
+    `id_ingrediente` INT AUTO_INCREMENT PRIMARY KEY,
+    `nombre` VARCHAR(255) NOT NULL,
+    `estado` ENUM('disponible', 'agotado') DEFAULT 'disponible'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `producto_ingrediente`;
+CREATE TABLE IF NOT EXISTS `producto_ingrediente` (
+    `id_producto` INT NOT NULL,
+    `id_ingrediente` INT NOT NULL,
+    PRIMARY KEY (`id_producto`, `id_ingrediente`),
+    CONSTRAINT `fk_prod_ing_producto` FOREIGN KEY (`id_producto`) REFERENCES `producto`(`id_producto`) ON DELETE CASCADE,
+    CONSTRAINT `fk_prod_ing_ingrediente` FOREIGN KEY (`id_ingrediente`) REFERENCES `ingrediente`(`id_ingrediente`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS=1;

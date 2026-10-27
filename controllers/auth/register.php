@@ -1,10 +1,6 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-session_start();
-
 require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
 require_once __DIR__ . '/../../models/UserModel.php';
 require_once __DIR__ . '/AuthController.php';
 
@@ -27,9 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'regis
     $isSuccess = $result['success'];
 
     if ($isSuccess) {
-        // Automatically login the user after successful registration or redirect to login
-        // For now, redirect to login page with a success message
-        // Since we don't have login.php yet, we will just show the success message in the view
+        $loginRes = $authController->handleLogin([
+            'email' => $_POST['email'] ?? '',
+            'password' => $_POST['password'] ?? ''
+        ]);
+        if ($loginRes['success'] ?? false) {
+            header('Location: ../cliente/catalogo.php');
+            exit;
+        }
     }
 }
 

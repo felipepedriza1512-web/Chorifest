@@ -1,3 +1,31 @@
+<?php
+require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
+if (!isset($authController)) {
+    require_once __DIR__ . '/../../config/database.php';
+    require_once __DIR__ . '/../../models/UserModel.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthController.php';
+    require_once __DIR__ . '/../../controllers/auth/AuthMiddleware.php';
+    enforceSecureSession();
+    $db = getDatabaseConnection();
+    $userModel = new UserModel($db);
+    $authController = new AuthController($userModel);
+
+    $message = null;
+    $isSuccess = true;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'forgot_password') {
+        $result = $authController->handleForgotPassword($_POST);
+        $message = $result['message'];
+        $isSuccess = $result['success'];
+
+        if ($isSuccess) {
+            header('Location: ' . baseUrl('/controllers/auth/reset_password.php?email=' . urlencode($_POST['email'] ?? '')));
+            exit;
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -216,5 +244,6 @@
         </div>
     </div>
 
+    <script src="<?= function_exists('baseUrl') ? baseUrl('/chorifest-fondo.js') : '../../chorifest-fondo.js' ?>"></script>
 </body>
 </html>

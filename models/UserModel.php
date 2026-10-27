@@ -53,9 +53,47 @@ class UserModel
         }
     }
 
-    public function login(string $email, string $password): array
+    public function isLoginBlocked(string $email, string $ip): bool
+    {
+        $windowMinutes = 15;
+        $maxAttempts = 5;
+
+        // Verificar intentos por correo
+        $stmtCorreo = $this->db->prepare('SELECT COUNT(*) FROM intentos_login WHERE correo = ? AND fecha >= DATE_SUB(NOW(), INTERVAL ? MINUTE)');
+        $stmtCorreo->execute([$email, $windowMinutes]);
+        $intentosCorreo = (int)$stmtCorreo->fetchColumn();
+
+        // Verificar intentos por IP
+        $stmtIp = $this->db->prepare('SELECT COUNT(*) FROM intentos_login WHERE ip = ? AND fecha >= DATE_SUB(NOW(), INTERVAL ? MINUTE)');
+        $stmtIp->execute([$ip, $windowMinutes]);
+        $intentosIp = (int)$stmtIp->fetchColumn();
+
+        return ($intentosCorreo >= $maxAttempts || $intentosIp >= $maxAttempts);
+    }
+
+    public function recordFailedLogin(string $email, string $ip): void
+    {
+        $stmt = $this->db->prepare('INSERT INTO intentos_login (ip, correo, fecha) VALUES (?, ?, NOW())');
+        $stmt->execute([$ip, $email]);
+    }
+
+    public function clearFailedLogins(string $email, string $ip): void
+    {
+        $stmt = $this->db->prepare('DELETE FROM intentos_login WHERE correo = ? OR ip = ?');
+        $stmt->execute([$email, $ip]);
+    }
+
+    public function login(string $email, string $password, ?string $ip = null): array
     {
         $email = strtolower(trim($email));
+        $ip = $ip ?: ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+
+        if ($this->isLoginBlocked($email, $ip)) {
+            return [
+                'success' => false,
+                'message' => 'Demasiados intentos fallidos. Tu cuenta o dirección IP han sido bloqueadas temporalmente. Por favor intenta más tarde.'
+            ];
+        }
 
         if ($email === '' || $password === '') {
             return ['success' => false, 'message' => 'Correo y contraseña son obligatorios.'];
@@ -63,13 +101,23 @@ class UserModel
 
         $user = $this->findByEmail($email);
 
-        if ($user === null) {
+        // Comparación segura resistente a ataques de temporización (timing attack)
+        $dummyHash = '$2y$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234';
+        $hashToVerify = ($user !== null && !empty($user['password_hash'])) ? $user['password_hash'] : $dummyHash;
+        $passwordMatches = password_verify($password, $hashToVerify);
+
+        if ($user === null || !$passwordMatches) {
+            $this->recordFailedLogin($email, $ip);
             return ['success' => false, 'message' => 'Correo o contraseña incorrectos.'];
         }
 
-        if (!password_verify($password, $user['password_hash'])) {
-            return ['success' => false, 'message' => 'Correo o contraseña incorrectos.'];
+        // Verificar si el usuario está activo
+        if (isset($user['estado']) && strtoupper($user['estado']) !== 'ACTIVO') {
+            return ['success' => false, 'message' => 'Tu usuario se encuentra inactivo. Contacta a un administrador.'];
         }
+
+        // Limpiar intentos fallidos al iniciar sesión con éxito
+        $this->clearFailedLogins($email, $ip);
 
         return [
             'success' => true,
@@ -78,6 +126,8 @@ class UserModel
                 'name' => $user['nombre'],
                 'email' => $user['correo'],
                 'rol' => (int) ($user['id_rol'] ?? 1),
+                'estado' => $user['estado'] ?? 'ACTIVO',
+                'debe_cambiar_password' => (int) ($user['debe_cambiar_password'] ?? 0),
             ],
         ];
     }
@@ -91,27 +141,29 @@ class UserModel
         return $user ?: null;
     }
 
-    public function saveRecoveryCode(string $email, string $code): bool
+    public function saveRecoveryCode(string $email, string $token): bool
     {
         // First delete any existing codes for this email
         $stmt = $this->db->prepare('DELETE FROM recuperacion_password WHERE correo = ?');
         $stmt->execute([$email]);
 
-        // Expiration in 15 minutes
+        // Expiration in 15 minutes and store secure SHA-256 hash
+        $tokenHash = hash('sha256', $token);
         $expiration = date('Y-m-d H:i:s', strtotime('+15 minutes'));
         
         $stmt = $this->db->prepare('INSERT INTO recuperacion_password (correo, codigo, fecha_expiracion) VALUES (?, ?, ?)');
-        return $stmt->execute([$email, $code, $expiration]);
+        return $stmt->execute([$email, $tokenHash, $expiration]);
     }
 
-    public function verifyRecoveryCode(string $email, string $code): bool
+    public function verifyRecoveryCode(string $email, string $token): bool
     {
+        $tokenHash = hash('sha256', $token);
         $stmt = $this->db->prepare('SELECT id FROM recuperacion_password WHERE correo = ? AND codigo = ? AND fecha_expiracion > NOW() LIMIT 1');
-        $stmt->execute([$email, $code]);
+        $stmt->execute([$email, $tokenHash]);
         $row = $stmt->fetch();
 
         if ($row) {
-            // Delete code after successful verification
+            // Eliminar de inmediato para garantizar uso único (single-use token)
             $delStmt = $this->db->prepare('DELETE FROM recuperacion_password WHERE id = ?');
             $delStmt->execute([$row['id']]);
             return true;

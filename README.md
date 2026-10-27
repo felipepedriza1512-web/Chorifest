@@ -29,16 +29,20 @@ APP_ENV=production
 PHP_ERROR_LOG=/home/tu_usuario/logs/chorifest_errors.log
 ```
 
-### 2. 🗄️ Base de datos de producción nueva (limpia)
+### 2. 🗄️ Base de datos de producción nueva e instalador seguro
 
-Usa `database/install_production.sql`:
-- Crea roles, estados, categorías y zonas de envío.
-- Crea **1 solo administrador** con contraseña temporal `Chorifest@2026!`.
-- El campo `debe_cambiar_password = 1` obliga a cambiar la contraseña en el primer login (implementar en `AuthController`).
+Usa `database/install_production.sql` o ejecuta el instalador CLI `install.php`:
+- Crea roles, estados, categorías, zonas de envío y estructura limpia sin datos de prueba.
+- **Generación aleatoria de clave:** Ejecuta `php install.php` para crear o actualizar el Administrador inicial con una contraseña criptográficamente segura generada al azar (`Chori_<hex>!<hex>`), mostrada una sola vez en consola.
+- **Cambio obligatorio:** El campo `debe_cambiar_password = 1` fuerza al Administrador a cambiar la contraseña en su primer inicio de sesión mediante `/controllers/auth/cambiar_password_obligatorio.php`, exigiendo la política de seguridad (mínimo 8 caracteres, prohibido `123456`, `admin123`, etc.).
 - **NO incluye** usuarios de prueba ni datos inventados.
 
 ```bash
+# 1. Estructura limpia
 mysql -u usuario -p nombre_base < database/install_production.sql
+
+# 2. Generar credenciales únicas de Administrador
+php install.php
 ```
 
 ### 3. 🚫 Archivos que NO se suben al hosting
@@ -151,8 +155,37 @@ Cualquier módulo, vista o consulta analítica de consumo total o reporte de cos
 
 ---
 
+## Política de Negocio: Domicilio Gratis (Envío Gratuito)
+
+Chorifest implementa una política donde **el domicilio no se cobra al cliente (es 100% gratuito)**. El cliente realiza sus pedidos con envío gratis y continúa disfrutando del mapa interactivo con seguimiento GPS en vivo de su domiciliario.
+
+### 1. Reglas Técnicas Implementadas:
+1. **Centralización en el Servidor:** La constante `PedidoModel::COBRAR_DOMICILIO = false;` gobierna el cobro de envíos en todo el sistema.
+2. **Cálculo y Guardado:** Todo pedido nuevo se almacena con `costo_domicilio = 0.00` y `total = subtotal`. El servidor ignora cualquier valor de costo o total enviado desde el navegador.
+3. **Integridad de Base de Datos:** Las columnas `pedido.costo_domicilio` y `zona_envio.costo_domicilio` se conservan sin alteraciones de esquema ni borrados. Los pedidos históricos mantienen lo que se les cobró en su respectivo momento.
+4. **Formulario de Zonas:** No expone campo de tarifa (las nuevas zonas se crean con tarifa 0.00 y las existentes conservan su tarifa histórica intacta sin que un POST pueda alterarla).
+5. **Solapamiento:** Cuando una ubicación cae en dos o más zonas solapadas, el desempate lo define la zona con **menor monto mínimo** (`monto_minimo ASC`), y en caso de empate, la de **menor ID** (`id_zona ASC`).
+6. **Reportes y Liquidación:** La fuente única de verdad `ReporteModel::ventasPorRango` desglosa `subtotal_productos` (ventas de productos) y `domicilios_historicos` (línea que solo se visualiza si hubo valor cobrado en pedidos antiguos del rango). Los cobros en efectivo y liquidaciones del domiciliario se basan estrictamente en `pedido.total`.
+
+### 2. Guía para Revertir si en el Futuro se Vuelve a Cobrar Domicilio:
+Si la administración de Chorifest decide volver a cobrar tarifa de entrega:
+1. **Servidor / Backend:**
+   - Cambiar en `models/PedidoModel.php`: `public const COBRAR_DOMICILIO = true;`. Con esto el servidor volverá a sumar la tarifa de la zona asignada a `subtotal`.
+2. **Interfaz del Cliente:**
+   - En `views/cliente/carrito.php`: reincorporar la línea de costo estimado de domicilio en el resumen.
+   - En `views/cliente/checkout.php`: reactivar en el resumen lateral la visualización dinámica del costo por zona en `shipping-cost`.
+   - En `views/admin/factura_view.php`: la etiqueta `Domicilio:` ya muestra el valor cuando es mayor a 0; volvería a mostrar `$<?= number_format(...) ?>` para todos los pedidos con costo.
+3. **Administración de Zonas:**
+   - En `views/admin/zonas.php`: restaurar el campo de entrada `<input type="number" name="costo_domicilio">` en el modal `#zonaModal`.
+   - En `controllers/admin/zonas.php` y `models/ZonaModel.php`: volver a incluir `costo_domicilio` dentro del array de campos actualizables de `updateZona`.
+4. **Desempate de Solapamiento:**
+   - Si se desea volver a priorizar menor tarifa en solapamientos, reactivar en `ZonaModel::findMatchingZone` el comparador `$a['costo_domicilio'] <=> $b['costo_domicilio']` como primer criterio.
+
+---
+
 ## Límites conocidos
 
 - **Descuento de Bebidas en Combos:** En los productos tipo combo, la bebida descontada del inventario corresponde al insumo estándar configurado en la receta base del producto, incluso si el cliente selecciona una variante alternativa de bebida al momento de realizar su orden.
+
 
 

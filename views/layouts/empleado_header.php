@@ -1,7 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
 $currentUser = $_SESSION['user'] ?? null;
 $rol = (int)($currentUser['rol'] ?? $currentUser['id_rol'] ?? 0);
 ?>
@@ -299,23 +298,27 @@ $rol = (int)($currentUser['rol'] ?? $currentUser['id_rol'] ?? 0);
 
     <!-- Sidebar -->
     <aside class="sidebar">
-        <a href="<?= $rol === 3 ? '/controllers/cocinera/pedidos.php' : ($rol === 4 ? '/controllers/domiciliario/rutas.php' : '/controllers/admin/dashboard.php') ?>" class="sidebar-brand">STAFF.</a>
+        <a href="<?= $rol === 3 ? baseUrl('/controllers/cocinera/pedidos.php') : ($rol === 4 ? baseUrl('/controllers/domiciliario/rutas.php') : baseUrl('/controllers/admin/dashboard.php')) ?>" class="sidebar-brand">STAFF.</a>
         
         <nav class="nav-links">
             <?php if ($rol === 3 || $rol === 2): ?>
-            <a href="/controllers/cocinera/pedidos.php" class="nav-item <?= ($currentPage ?? '') === 'cocina' ? 'active' : '' ?>">
+            <a href="<?= baseUrl('/controllers/cocinera/pedidos.php') ?>" class="nav-item <?= ($currentPage ?? '') === 'cocina' ? 'active' : '' ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="M4 6v6"></path><path d="M20 6v6"></path><path d="M8 2v4"></path><path d="M12 2v4"></path><path d="M16 2v4"></path></svg>
                 Panel de Cocina
             </a>
             <?php endif; ?>
             <?php if ($rol === 4 || $rol === 2): ?>
-            <a href="/controllers/domiciliario/rutas.php" class="nav-item <?= ($currentPage ?? '') === 'rutas' ? 'active' : '' ?>">
+            <a href="<?= baseUrl('/controllers/domiciliario/rutas.php') ?>" class="nav-item <?= ($currentPage ?? '') === 'rutas' ? 'active' : '' ?>">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
                 Rutas de Entrega
             </a>
+            <a href="<?= baseUrl('/controllers/domiciliario/liquidaciones.php') ?>" class="nav-item <?= ($currentPage ?? '') === 'liquidaciones' ? 'active' : '' ?>">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                Mis Liquidaciones
+            </a>
             <?php endif; ?>
             <?php if ($rol === 2): ?>
-            <a href="/controllers/admin/dashboard.php" class="nav-item">
+            <a href="<?= baseUrl('/controllers/admin/dashboard.php') ?>" class="nav-item">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 Panel Admin
             </a>
@@ -323,7 +326,7 @@ $rol = (int)($currentUser['rol'] ?? $currentUser['id_rol'] ?? 0);
         </nav>
 
         <div class="sidebar-footer">
-            <a href="/controllers/auth/logout.php" class="btn-logout">
+            <a href="<?= baseUrl('/controllers/auth/logout.php') ?>" class="btn-logout">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 Cerrar sesión
             </a>

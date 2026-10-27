@@ -1,6 +1,6 @@
 <?php
-session_start();
 require_once __DIR__ . '/../../config/database.php';
+startSecureSession();
 require_once __DIR__ . '/../../models/UserModel.php';
 require_once __DIR__ . '/AuthController.php';
 
@@ -11,9 +11,9 @@ $authController = new AuthController($userModel);
 $authController->logout(null); // Force complete logout
 
 if (isset($_GET['redirect']) && $_GET['redirect'] === 'login') {
-    header('Location: login.php');
+    header('Location: ' . baseUrl('/controllers/auth/login.php'));
 } else {
-    header('Location: ../../index.php?logout=success');
+    header('Location: ' . baseUrl('/index.php?logout=success'));
 }
 exit;
 

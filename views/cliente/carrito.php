@@ -145,6 +145,17 @@
     <h1 class="catalog-title">Mi Carrito</h1>
 </div>
 
+<?php if (!empty($_SESSION['cart_error'])): ?>
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 16px; margin-bottom: 25px; color: #fca5a5; display: flex; align-items: flex-start; gap: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div>
+            <strong style="color: #ef4444; display:block; margin-bottom: 4px;">Disponibilidad de Insumos:</strong>
+            <?= htmlspecialchars($_SESSION['cart_error']) ?>
+        </div>
+    </div>
+    <?php unset($_SESSION['cart_error']); ?>
+<?php endif; ?>
+
 <?php if (empty($_SESSION['carrito'])): ?>
     <div class="cart-items empty-cart">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom:20px; opacity:0.5;">
@@ -156,6 +167,9 @@
         <a href="catalogo.php" class="btn-checkout" style="width: auto; display: inline-block; padding: 10px 30px;">Ir al menú</a>
     </div>
 <?php else: ?>
+    <?php
+    $valCarritoGlobal = isset($inventarioModel) ? $inventarioModel->verificarStockCarrito($_SESSION['carrito']) : ['valido' => true];
+    ?>
     <div class="cart-container">
         <div class="cart-items">
             <?php 
@@ -167,7 +181,7 @@
                 $subtotal += $itemTotal;
                 
                 // Obtener imagen basada en el nombre usando el helper del modelo
-                $imgUrl = $productoModel->getImagenUrl($prod['nombre_producto'], $id, 200);
+                $imgUrl = $productoModel->getImagenUrl($prod['nombre_producto'], $id, $prod['imagen'] ?? null, 200);
             ?>
                 <div class="cart-item">
                     <img src="<?= $imgUrl ?>" alt="Producto" class="item-image">
@@ -176,12 +190,15 @@
                         <div class="item-price">$<?= number_format($prod['precio'], 2) ?> c/u</div>
                     </div>
                     <div class="item-actions">
+                        <?php 
+                            $maxDisp = isset($inventarioModel) ? $inventarioModel->getCantidadMaximaDisponible($id) : null;
+                        ?>
                         <form action="carrito.php" method="POST" class="qty-form">
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="id_producto" value="<?= $id ?>">
                             <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input[type=number]').stepDown(); this.parentNode.submit();">-</button>
-                            <input type="number" name="cantidad" value="<?= $qty ?>" min="1" max="99" class="qty-input" readonly>
-                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input[type=number]').stepUp(); this.parentNode.submit();">+</button>
+                            <input type="number" name="cantidad" value="<?= $qty ?>" min="1" <?= $maxDisp !== null ? 'max="' . $maxDisp . '"' : 'max="99"' ?> class="qty-input" readonly>
+                            <button type="button" class="qty-btn" onclick="var inp = this.parentNode.querySelector('input[type=number]'); if (!inp.max || parseInt(inp.value) < parseInt(inp.max)) { inp.stepUp(); this.parentNode.submit(); } else { alert('Has alcanzado el límite máximo disponible según stock de insumos (' + inp.max + ').'); }">+</button>
                         </form>
                         
                         <form action="carrito.php" method="POST" style="margin:0;">
@@ -203,17 +220,21 @@
                     <span>Subtotal</span>
                     <span>$<?= number_format($subtotal, 2) ?></span>
                 </div>
-                <div class="summary-row">
-                    <span>Costo de envío</span>
-                    <span style="color:#888; font-size:0.9rem;">(Se calculará después)</span>
-                </div>
                 
                 <div class="summary-total">
-                    <span>Total estimado</span>
+                    <span>Total</span>
                     <span>$<?= number_format($subtotal, 2) ?></span>
                 </div>
 
-                <a href="checkout.php" class="btn-checkout">Proceder al pago</a>
+                <?php if (!$valCarritoGlobal['valido']): ?>
+                    <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 10px; padding: 12px; margin-bottom: 15px; color: #fca5a5; font-size: 0.85rem; line-height: 1.4;">
+                        <strong style="color: #ef4444; display:block; margin-bottom: 4px;">⚠️ Insumos Insuficientes:</strong>
+                        <?= htmlspecialchars($valCarritoGlobal['mensaje']) ?>
+                    </div>
+                    <button type="button" class="btn-checkout" style="background: #4b5563; cursor: not-allowed; opacity: 0.6; box-shadow: none;" disabled title="Ajusta las cantidades para proceder">Stock Total Insuficiente</button>
+                <?php else: ?>
+                    <a href="checkout.php" class="btn-checkout">Proceder al pago</a>
+                <?php endif; ?>
                 
                 <form action="carrito.php" method="POST" style="margin-top: 15px; text-align:center;">
                     <input type="hidden" name="action" value="clear">

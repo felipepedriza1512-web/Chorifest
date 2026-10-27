@@ -1,54 +1,53 @@
 <?php
-session_start();
 require_once __DIR__ . '/../auth/AuthMiddleware.php';
-checkRole(1); // Solo admin
+checkRole(2);
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../models/IngredienteModel.php';
-require_once __DIR__ . '/../../models/ProductoModel.php';
+require_once __DIR__ . '/../../models/InventarioModel.php';
 
 $db = getDatabaseConnection();
-$ingredienteModel = new IngredienteModel($db);
-$productoModel = new ProductoModel($db);
+$inventarioModel = new InventarioModel($db);
+$idAdmin = (int)($_SESSION['user']['id'] ?? $_SESSION['user']['id_usuario'] ?? 0);
 
-// Procesar acciones POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!verifyCsrfToken($csrfToken)) {
+        http_response_code(403);
+        echo "<!DOCTYPE html><html><body><h1>403 Forbidden - Token CSRF Inválido o Ausente</h1></body></html>";
+        exit;
+    }
+
     $action = $_POST['action'];
 
-    if ($action === 'create') {
-        $nombre = trim($_POST['nombre'] ?? '');
-        if (!empty($nombre)) {
-            $ingredienteModel->createIngrediente($nombre);
-        }
-    } elseif ($action === 'update') {
-        $id = (int)($_POST['id_ingrediente'] ?? 0);
-        $nombre = trim($_POST['nombre'] ?? '');
-        if ($id > 0 && !empty($nombre)) {
-            $ingredienteModel->updateIngrediente($id, $nombre);
-        }
-    } elseif ($action === 'delete') {
-        $id = (int)($_POST['id_ingrediente'] ?? 0);
-        if ($id > 0) {
-            $ingredienteModel->deleteIngrediente($id);
-        }
-    } elseif ($action === 'toggle_estado') {
-        $id = (int)($_POST['id_ingrediente'] ?? 0);
-        if ($id > 0) {
-            $ingredienteModel->toggleEstado($id);
-        }
-    } elseif ($action === 'assign_products') {
-        $idIngrediente = (int)($_POST['id_ingrediente'] ?? 0);
-        $productosIds = $_POST['productos'] ?? [];
-        if ($idIngrediente > 0) {
-            // Eliminar todas las relaciones para este ingrediente y crear nuevas
-            $stmtDel = $db->prepare("DELETE FROM producto_ingrediente WHERE id_ingrediente = ?");
-            $stmtDel->execute([$idIngrediente]);
-            
-            if (!empty($productosIds)) {
-                $stmtIns = $db->prepare("INSERT INTO producto_ingrediente (id_producto, id_ingrediente) VALUES (?, ?)");
-                foreach ($productosIds as $idProd) {
-                    $stmtIns->execute([(int)$idProd, $idIngrediente]);
-                }
+    if ($action === 'entrada') {
+        $idInsumo = (int)($_POST['id_insumo'] ?? 0);
+        $cantidad = (float)($_POST['cantidad'] ?? 0);
+        $motivo = trim($_POST['motivo'] ?? '');
+
+        if ($idInsumo > 0 && $cantidad > 0 && !empty($motivo)) {
+            $res = $inventarioModel->registrarEntrada($idInsumo, $cantidad, $motivo, $idAdmin);
+            if ($res['success']) {
+                $_SESSION['flash_success'] = 'Entrada de inventario registrada exitosamente.';
+            } else {
+                $_SESSION['flash_error'] = $res['message'];
             }
+        } else {
+            $_SESSION['flash_error'] = 'Todos los campos son obligatorios: insumo, cantidad mayor a 0 y motivo.';
+        }
+
+    } elseif ($action === 'ajuste') {
+        $idInsumo = (int)($_POST['id_insumo'] ?? 0);
+        $nuevoStock = (float)($_POST['nuevo_stock'] ?? -1);
+        $motivo = trim($_POST['motivo'] ?? '');
+
+        if ($idInsumo > 0 && $nuevoStock >= 0 && !empty($motivo)) {
+            $res = $inventarioModel->registrarAjuste($idInsumo, $nuevoStock, $motivo, $idAdmin);
+            if ($res['success']) {
+                $_SESSION['flash_success'] = 'Ajuste de inventario aplicado exitosamente.';
+            } else {
+                $_SESSION['flash_error'] = $res['message'];
+            }
+        } else {
+            $_SESSION['flash_error'] = 'Datos inválidos. El nuevo stock no puede ser negativo y el motivo es obligatorio.';
         }
     }
 
@@ -56,18 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-$ingredientes = $ingredienteModel->getIngredientes();
-$productos = $productoModel->getProductos();
+$flashError = $_SESSION['flash_error'] ?? '';
+$flashSuccess = $_SESSION['flash_success'] ?? '';
+unset($_SESSION['flash_error'], $_SESSION['flash_success']);
 
-// Para cada ingrediente, obtener los IDs de los productos a los que pertenece
-foreach ($ingredientes as &$ing) {
-    $stmt = $db->prepare("SELECT id_producto FROM producto_ingrediente WHERE id_ingrediente = ?");
-    $stmt->execute([$ing['id_ingrediente']]);
-    $ing['productos'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
-}
+$insumos = $inventarioModel->getInsumos();
+$movimientos = $inventarioModel->getMovimientos(0, 50);
+$alertas = $inventarioModel->getAlertasStockMinimo();
 
 $currentPage = 'ingredientes';
-$pageTitle = 'Gestión de Ingredientes';
+$pageTitle = 'Inventario e Ingredientes';
 
 require_once __DIR__ . '/../../views/layouts/admin_header.php';
 require_once __DIR__ . '/../../views/admin/ingredientes.php';

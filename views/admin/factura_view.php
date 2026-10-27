@@ -285,8 +285,8 @@
                 <span>$<?= number_format($pedido['subtotal'], 2) ?></span>
             </div>
             <div class="total-line">
-                <span>Costo Domicilio:</span>
-                <span>$<?= number_format($pedido['costo_domicilio'], 2) ?></span>
+                <span>Domicilio:</span>
+                <span><?= ((float)($pedido['costo_domicilio'] ?? 0) > 0) ? '$' . number_format($pedido['costo_domicilio'], 2) : 'Gratis' ?></span>
             </div>
             <div class="total-line">
                 <span>Método de Pago:</span>
